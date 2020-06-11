@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" type= "text/css" href="{{ url_for('static',filename='styles/styles.css') }}">
+    </head>
+    <body>
+
+      <div class="container">
+        <div class="row">
+          <div class="col">
+            <nav class="navbar navbar-dark bg-dark mb-2">
+              <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                  <img class="logo mr-2" src="https://i.pinimg.com/originals/2c/fc/93/2cfc93d7665f5d7728782700e50596e3.png" alt="logo">
+                  <strong>Book keeper</strong>
+                </a>
+                <div class="form-inline mt-2 mt-md-0">
+                  {% block Login_Logout %}
+                  {% endblock %}
+                </div>
+            </nav>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+              {% block body %}
+              {% endblock %}
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <footer>
+              <div class="bg-dark text-white mt-2">
+              This is footer.
+              </div>
+            </footer>
+          </div>
+        </div>
+    </div>
+
+    </body>
+</html>

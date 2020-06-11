@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register as a new user
+{% endblock %}
+
+{% block Login_Logout %}
+<!--- On a Registartion form we don't show any options in the right corner.
+The Log in option will be suggested on this form itself.--->
+{% endblock %}
+
+
+{% block body %}
+<h1>Sign up</h1>
+<form>
+  <div class="form-group">
+    <label for="InputName">First name</label>
+    <input type="text" class="form-control" name="" placeholder="First name">
+  </div>
+  <div class="form-group">
+    <label for="InputEmail">Email address</label>
+    <input type="email" class="form-control" aria-describedby="emailHelp" placeholder="Enter email">
+    <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+  </div>
+  <div class="form-group">
+    <label for="InputPassword">Password</label>
+    <input type="password" class="form-control" placeholder="Password">
+  </div>
+  <div class="form-group">
+    <label for="InputRepeatPassword">Repeat password</label>
+    <input type="password" class="form-control" placeholder="Repeat password">
+  </div>
+  <button type="submit" class="btn btn-primary">Sign up</button>
+</form>
+{% endblock %}
