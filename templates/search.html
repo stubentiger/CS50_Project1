@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Search results
+{% endblock %}
+
+{% block logout %}
+<form action="{{ url_for('logout') }}" method="POST">
+  <button class="btn btn-light" type="submit">Log out</button>
+</form>
+{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center mt-5 mb-5">
+  <div class="col-8">
+    <form action="{{ url_for('search') }}" method="GET">
+      <div class="input-group input-group-lg">
+        <input name="search_input" type="text" class="form-control" value="{{ search_string }}" aria-describedby="button-addon2">
+        <div class="input-group-append">
+          <button class="btn btn-outline-primary" type="submit" id="button-addon2">Search</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    {% if error %}
+      <p>{{ error }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    {% if books %}
+    <ul>
+      {% for (isbn, title, author, year) in books %}
+        <li><a href="{{ url_for('book_page') }}">{{ isbn }}, {{ title }}, {{author}}, {{year}}</a></li>
+     {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

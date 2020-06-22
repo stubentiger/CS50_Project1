@@ -14,8 +14,8 @@ img {
 
 .bg-image {
   background-image: url("https://www.ci.lathrop.ca.us/sites/default/files/imageattachments/code-compliance/page/1511/picture_4_.jpg");
-  height: 600px;
-  padding-top: 160px;
+  height: 700px;
+  padding-top: 220px;
   padding-left: 70px;
   padding-right: 70px;
 }
@@ -28,6 +28,18 @@ img {
   padding: 40px;
   left: 30%;
   text-align: center;
+}
+
+.form {
+  padding-top: 100px;
+  padding-bottom: 140px;
+  padding-left: 200px;
+  padding-right: 200px;
+}
+
+h1 {
+  margin-top: 40px;
+  font-size: 30px;
 }
 
 /*# sourceMappingURL=styles.css.map */

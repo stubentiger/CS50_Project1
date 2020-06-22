@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Search for books
+{% endblock %}
+
+{% block logout %}
+<form action="{{ url_for('logout') }}" method="POST">
+  <button class="btn btn-light" type="submit">Log out</button>
+</form>
+{% endblock %}
+
+{% block body %}
+  <div class="row">
+    <div class="col">
+      <h1>Hallöchen {{name}}! Start searching for books!</h1>
+    </div>
+  </div>
+
+  <div class="row justify-content-center mt-5 mb-5">
+    <div class="col-8">
+      <form action="{{ url_for('search') }}" method="GET">
+        <div class="input-group input-group-lg">
+          <input name="search_input" type="text" class="form-control" placeholder="Search by isbn, title or author" aria-describedby="button-addon2">
+          <div class="input-group-append">
+            <button class="btn btn-outline-primary" type="submit" id="button-addon2">Search</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{% endblock %}
