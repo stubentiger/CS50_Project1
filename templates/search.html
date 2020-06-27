@@ -35,9 +35,9 @@ Search results
 <div class="row">
   <div class="col">
     {% if books %}
-    <ul>
-      {% for (isbn, title, author, year) in books %}
-        <li><a href="{{ url_for('book_page') }}">{{ isbn }}, {{ title }}, {{author}}, {{year}}</a></li>
+    <ul class="list-group">
+      {% for (isbn, title, author) in books %}
+        <li class="list-group-item"><a href="{{ url_for('book_page', isbn=isbn) }}">{{ title }}</a> written by {{ author }}</li>
      {% endfor %}
     </ul>
     {% endif %}

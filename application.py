@@ -1,4 +1,5 @@
 import os
+import requests
 
 from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
@@ -155,7 +156,7 @@ def search():
 
     books = db.execute(
     """
-    SELECT title, author
+    SELECT isbn, title, author
     FROM books
     WHERE
       isbn LIKE :search_phrase
@@ -169,7 +170,7 @@ def search():
     else:
         return render_template("search.html", search_string=search_phrase, books=books, error="")
 
-@app.route("/books/search/<str:isbn>")
+@app.route("/books/search/<isbn>")
 def book_page(isbn):
     book_data = db.execute(
     """
@@ -181,7 +182,35 @@ def book_page(isbn):
     {"isbn": isbn}
     ).fetchone()
     #if there is no book
-    if len(book_data) == 0:
+    if book_data is None:
         return redirect(url_for("book_error", message="The book doesn't exist"))
     else:
-        return render_template("book_data.html")
+        #if a book is found obtain it's review rating from Goodreads API
+        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
+
+        avg_review = res["books"][0]["average_rating"]
+
+        if avg_review == "":
+            avg_review = "No rating"
+        else:
+            avg_review = avg_review + " / 5.00"
+
+        total_reviews = res["books"][0]["work_ratings_count"]
+
+        return render_template(
+            "book_data.html",
+            title=book_data.title,
+            author=book_data.author,
+            isbn=book_data.isbn,
+            year=book_data.year,
+            avg_review=avg_review,
+            total_reviews= total_reviews
+        )
+
+
+@app.route("/books/search/<isbn>/review", methods=["GET", "POST"])
+def submit_review(isbn):
+    if request.method == "GET":
+        return render_template("review.html")
+    elif request.method == "POST":
+        pass
