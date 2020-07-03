@@ -13,20 +13,46 @@ Search for books
 {% block body %}
   <div class="row">
     <div class="col">
+      {% if search_string is none %}
       <h1>Hallöchen {{name}}! Start searching for books!</h1>
+      {% endif %}
     </div>
   </div>
 
-  <div class="row justify-content-center mt-5 mb-5">
-    <div class="col-8">
-      <form action="{{ url_for('search') }}" method="GET">
+  <div class="row mt-2 mb-3">
+    <div class="col">
+      <form action="{{ url_for('books') }}" method="GET">
         <div class="input-group input-group-lg">
+          {% if books %}
+          <input name="search_input" type="text" class="form-control" value="{{ search_string }}" aria-describedby="button-addon2">
+          {% elif books is none %}
           <input name="search_input" type="text" class="form-control" placeholder="Search by isbn, title or author" aria-describedby="button-addon2">
+          {% endif %}
           <div class="input-group-append">
-            <button class="btn btn-outline-primary" type="submit" id="button-addon2">Search</button>
+            <button class="btn btn-outline-primary" type="submit">Search</button>
           </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      {% if error %}
+        <p>{{ error }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row mt-2 mb-3">
+    <div class="col">
+      {% if books %}
+      <ul class="list-group">
+        {% for (isbn, title, author) in books %}
+          <li class="list-group-item"><a href="{{ url_for('book_page', isbn=isbn) }}">{{ title }}</a> written by {{ author }}</li>
+       {% endfor %}
+      </ul>
+      {% endif %}
     </div>
   </div>
 

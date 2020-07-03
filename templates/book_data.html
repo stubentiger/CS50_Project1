@@ -25,7 +25,23 @@
 <div class="row">
   <div class="col">
     <form action="{{ url_for('submit_review', isbn=isbn) }}" method="GET">
-      <button class="btn btn-primary" type="submit"></button>
+      <button class="btn btn-primary" type="submit">Add review</button>
   </div>
 </div>
+
+<div class="row">
+  <div class="col">
+    <h1>Reviews</h1>
+    {% if reviews %}
+    {% for (name, date, rate, revision_text) in reviews %}
+    <h4>{{ name }} on {{ date }}</h4>
+    <p>{{ rate }} / 5 </p>
+    <p>{{ revision_text }}</p>
+    {% endfor %}
+    {% else %}
+    <p>There are no reviews left by Bookeeper users. Be the first!</p>
+    {% endif %}
+  </div>
+</div>
+
 {% endblock %}

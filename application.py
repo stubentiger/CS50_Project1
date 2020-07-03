@@ -1,7 +1,7 @@
 import os
 import requests
 
-from flask import Flask, session, render_template, request, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -68,13 +68,14 @@ def register():
         password = request.form.get("password")
         db.execute(
         """
-        INSERT INTO users (name, email, password) VALUES (:name, :email, :password)
+        INSERT INTO users (name, email, password)
+        VALUES (:name, :email, :password)
         """,
         {"name": name, "email": email, "password": password}
         )
         db.commit()
         # log in this recently registered users
-        user_id = db.execute(
+        user = db.execute(
         """
         SELECT user_id
         FROM users
@@ -83,7 +84,7 @@ def register():
         """,
         {"email": email, "password": password}
         ).fetchone()
-        return authorize_user(user_id, name)
+        return authorize_user(user.user_id, name)
 
 
 
@@ -93,7 +94,7 @@ def login():
     if request.method == "GET":
         user_name = logged_in_user()
         if user_name is not None:
-            return render_template("books.html", name = user_name)
+            return render_template("books.html", name=user_name)
         else:
             return render_template("login.html")
     #if a user filled in login data and submits the form
@@ -137,41 +138,38 @@ def logout():
     return render_template("guest.html")
 
 
-@app.route("/books", methods=["GET", "POST"])
+@app.route("/books")
 def books():
-    if request.method == "POST":
-        return redirect(url_for("logout"))
-    elif request.method == "GET":
-        user_name = logged_in_user()
-        if user_name is not None:
-            return render_template("books.html", name=user_name)
-        else:
-            return redirect(url_for("index"))
+    user_name = logged_in_user()
+    if user_name is None:
+        return redirect(url_for("index"))
 
-@app.route("/books/search")
-def search():
-    search_phrase = request.args.get("search_input")
-    if search_phrase == "" or search_phrase is None:
-        return render_template("search.html", search_string=search_phrase, books=None, error="Search request is empty. No books found.")
-
-    books = db.execute(
-    """
-    SELECT isbn, title, author
-    FROM books
-    WHERE
-      isbn LIKE :search_phrase
-      OR title LIKE :search_phrase
-      OR author LIKE :search_phrase
-    """,
-    {"search_phrase": "%" + search_phrase + "%"}
-    ).fetchall()
-    if len(books) == 0:
-        return render_template("search.html", search_string=search_phrase, books=None, error="No books found")
+    search_string = request.args.get("search_input")
+    #if it's the first page opening and search wasn't made yet
+    if search_string is None:
+        return render_template("books.html", name=user_name, books=None, search_string=None)
     else:
-        return render_template("search.html", search_string=search_phrase, books=books, error="")
+        if search_string == "":
+            return render_template("books.html", search_string=search_string, books=None, error="Search request is empty. No books found.")
+        else:
+            books = db.execute(
+            """
+            SELECT isbn, title, author
+            FROM books
+            WHERE
+            isbn LIKE :search_phrase
+            OR title LIKE :search_phrase
+            OR author LIKE :search_phrase
+            """,
+            {"search_phrase": "%" + search_string + "%"}
+            ).fetchall()
+            if len(books) == 0:
+                return render_template("books.html", search_string=search_string, books=None, error="No books found")
+            else:
+                return render_template("books.html", search_string=search_string, books=books, error="")
 
-@app.route("/books/search/<isbn>")
-def book_page(isbn):
+
+def get_book_data(isbn):
     book_data = db.execute(
     """
     SELECT isbn, title, author, year
@@ -181,6 +179,16 @@ def book_page(isbn):
     """,
     {"isbn": isbn}
     ).fetchone()
+    return book_data
+
+@app.route("/books/<isbn>")
+def book_page(isbn):
+    user_name = logged_in_user()
+    if user_name is None:
+        return redirect(url_for("index"))
+
+    book_data = get_book_data(isbn)
+
     #if there is no book
     if book_data is None:
         return redirect(url_for("book_error", message="The book doesn't exist"))
@@ -189,13 +197,22 @@ def book_page(isbn):
         res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
 
         avg_review = res["books"][0]["average_rating"]
-
         if avg_review == "":
             avg_review = "No rating"
         else:
             avg_review = avg_review + " / 5.00"
 
         total_reviews = res["books"][0]["work_ratings_count"]
+
+        reviews = db.execute(
+        """
+        SELECT name, date, rate, revision_text
+        FROM
+        reviews JOIN users ON reviews.user_id = users.user_id
+          WHERE isbn = :isbn
+        """,
+        {"isbn": isbn}
+        ).fetchall()
 
         return render_template(
             "book_data.html",
@@ -204,13 +221,83 @@ def book_page(isbn):
             isbn=book_data.isbn,
             year=book_data.year,
             avg_review=avg_review,
-            total_reviews= total_reviews
+            total_reviews= total_reviews,
+            reviews = reviews
         )
 
 
-@app.route("/books/search/<isbn>/review", methods=["GET", "POST"])
+@app.route("/books/<isbn>/review", methods=["GET", "POST"])
 def submit_review(isbn):
+    user_name = logged_in_user()
+    if user_name is None:
+        return redirect(url_for("index"))
+
+    title = db.execute(
+    """
+    SELECT title
+    FROM books
+    WHERE
+      isbn = :isbn
+    """,
+    {"isbn": isbn}
+    ).fetchone().title
+
     if request.method == "GET":
-        return render_template("review.html")
+        return render_template("review.html", title=title, isbn=isbn, error="")
     elif request.method == "POST":
-        pass
+        # check that current user hasn't left a review for this book
+        user_id = session.get("user_id")
+        review = db.execute(
+        """
+        SELECT user_id
+        FROM reviews
+        WHERE
+          isbn = :isbn
+          AND user_id = :user_id
+        """,
+        {"isbn": isbn, "user_id": user_id}
+        ).fetchone()
+
+        if review is not None:
+            return render_template("review.html", title=title, isbn=isbn, error="You have already reviewed this book")
+
+        # rating is a mandatory field
+        rate = request.form.get("review")
+        if rate is None:
+            return render_template("review.html", title=title, isbn=isbn, error="Select a score for the book")
+
+
+        rate = int(rate)
+        revision_text = request.form.get("review_text")
+        db.execute(
+        """
+        INSERT INTO reviews (isbn, user_id, rate, revision_text)
+        VALUES
+        (:isbn, :user_id, :rate, :revision_text)
+        """,
+        {"isbn": isbn, "user_id": user_id, "rate": rate, "revision_text": revision_text}
+        )
+        db.commit()
+
+        return redirect(url_for("book_page", isbn=isbn))
+
+
+@app.route("/api/<isbn>")
+def get_book_api(isbn):
+    book_data = get_book_data(isbn)
+    #no book with such isbn in our db
+    if book_data is None:
+        return jsonify({"error": "Invalid book isbn"}), 422
+
+    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
+    avg_review = res["books"][0]["average_rating"]
+    total_reviews = res["books"][0]["work_ratings_count"]
+
+    return jsonify(
+    {"title": book_data.title,
+    "author": book_data.author,
+    "year": book_data.author,
+    "isbn": book_data.year,
+    "review_count": total_reviews,
+    "average_score": avg_review}
+    )
