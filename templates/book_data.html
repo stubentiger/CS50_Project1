@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block body %}
+
 <div class="row">
   <div class="col">
     <h1>{{ title }} by {{ author }}</h1>
@@ -22,12 +23,6 @@
   </div>
 </div>
 
-<div class="row">
-  <div class="col">
-    <form action="{{ url_for('submit_review', isbn=isbn) }}" method="GET">
-      <button class="btn btn-primary" type="submit">Add review</button>
-  </div>
-</div>
 
 <div class="row">
   <div class="col">
@@ -41,6 +36,7 @@
     {% else %}
     <p>There are no reviews left by Bookeeper users. Be the first!</p>
     {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('submit_review', isbn=isbn) }}">Add review</a>
   </div>
 </div>
 

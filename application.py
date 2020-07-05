@@ -42,6 +42,7 @@ def authorize_user(user_id, name):
     session["user_name"] = name
     return redirect(url_for("books", name=name))
 
+
 @app.route("/registration", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
@@ -74,7 +75,7 @@ def register():
         {"name": name, "email": email, "password": password}
         )
         db.commit()
-        # log in this recently registered users
+        # log in this new user
         user = db.execute(
         """
         SELECT user_id
@@ -117,7 +118,7 @@ def login():
 
 
 def render_error_page():
-    return render_template("Error.html", message=request.args.get("message", "Go away!!!!"))
+    return render_template("Error.html", message=request.args.get("message", "Go away!!!"))
 
 @app.route("/login_error")
 def login_error():
@@ -164,7 +165,7 @@ def books():
             {"search_phrase": "%" + search_string + "%"}
             ).fetchall()
             if len(books) == 0:
-                return render_template("books.html", search_string=search_string, books=None, error="No books found")
+                return render_template("books.html", search_string=search_string, books=None, error="No books found for your search query")
             else:
                 return render_template("books.html", search_string=search_string, books=books, error="")
 
@@ -181,6 +182,7 @@ def get_book_data(isbn):
     ).fetchone()
     return book_data
 
+
 @app.route("/books/<isbn>")
 def book_page(isbn):
     user_name = logged_in_user()
@@ -188,7 +190,6 @@ def book_page(isbn):
         return redirect(url_for("index"))
 
     book_data = get_book_data(isbn)
-
     #if there is no book
     if book_data is None:
         return redirect(url_for("book_error", message="The book doesn't exist"))
@@ -232,18 +233,13 @@ def submit_review(isbn):
     if user_name is None:
         return redirect(url_for("index"))
 
-    title = db.execute(
-    """
-    SELECT title
-    FROM books
-    WHERE
-      isbn = :isbn
-    """,
-    {"isbn": isbn}
-    ).fetchone().title
+    book_data = get_book_data(isbn)
 
     if request.method == "GET":
-        return render_template("review.html", title=title, isbn=isbn, error="")
+        if book_data is None:
+            return redirect(url_for("book_error", message="You can't add a review. The book doesn't exist."))
+        else:
+            return render_template("review.html", title=book_data.title, isbn=isbn, error="")
     elif request.method == "POST":
         # check that current user hasn't left a review for this book
         user_id = session.get("user_id")
@@ -259,12 +255,12 @@ def submit_review(isbn):
         ).fetchone()
 
         if review is not None:
-            return render_template("review.html", title=title, isbn=isbn, error="You have already reviewed this book")
+            return render_template("review.html", title=book_data.title, isbn=isbn, error="You have already reviewed this book")
 
         # rating is a mandatory field
         rate = request.form.get("review")
         if rate is None:
-            return render_template("review.html", title=title, isbn=isbn, error="Select a score for the book")
+            return render_template("review.html", title=book_data.title, isbn=isbn, error="Select a score for the book")
 
 
         rate = int(rate)
@@ -287,9 +283,16 @@ def get_book_api(isbn):
     book_data = get_book_data(isbn)
     #no book with such isbn in our db
     if book_data is None:
-        return jsonify({"error": "Invalid book isbn"}), 422
+        return jsonify({"error": "Invalid book isbn"}), 404
 
-    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
+    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn})
+
+    #if the book exists but there is no data about it in Goodreads
+    if response.status_code == 404:
+        avg_review = "no data"
+        total_reviews = "no data"
+
+    res = response.json()
     avg_review = res["books"][0]["average_rating"]
     total_reviews = res["books"][0]["work_ratings_count"]
 

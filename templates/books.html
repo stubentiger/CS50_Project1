@@ -23,11 +23,19 @@ Search for books
     <div class="col">
       <form action="{{ url_for('books') }}" method="GET">
         <div class="input-group input-group-lg">
-          {% if books %}
-          <input name="search_input" type="text" class="form-control" value="{{ search_string }}" aria-describedby="button-addon2">
-          {% elif books is none %}
-          <input name="search_input" type="text" class="form-control" placeholder="Search by isbn, title or author" aria-describedby="button-addon2">
+
+          <input
+            name="search_input"
+            type="text"
+            class="form-control"
+          {% if search_string %}
+            value="{{ search_string }}"
+          {% else %}
+            placeholder="Search by isbn, title or author"
           {% endif %}
+            aria-describedby="button-addon2"
+          >
+
           <div class="input-group-append">
             <button class="btn btn-outline-primary" type="submit">Search</button>
           </div>
