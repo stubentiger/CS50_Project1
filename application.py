@@ -25,12 +25,21 @@ db = scoped_session(sessionmaker(bind=engine))
 @app.route("/")
 def index():
     user_name = logged_in_user()
+    #remove else and change "is not" logic
     if user_name is not None:
         return redirect(url_for("books", name=user_name))
     else:
         return render_template("guest.html")
 
+
 #check whether user is logged in and return her/his name
+# ADD DECORATOR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! - think about it
+
+# Check that all forms contain expected fields and values because they
+# can be missing.
+
+# Look at tool called "black"
+
 def logged_in_user():
     if "user_id" in session:
         return session["user_name"]
@@ -45,12 +54,15 @@ def authorize_user(user_id, name):
 
 @app.route("/registration", methods=["GET", "POST"])
 def register():
+    #create a separate func for this
     if request.method == "GET":
         user_name = logged_in_user()
         if user_name is not None:
             return redirect(url_for("books", name=user_name))
         else:
             return render_template("registration.html")
+    #create a sep func and split this into functions
+    # function with several args
     elif request.method == "POST":
         #check a user with this email isn't registered already
         email = request.form.get("email")
@@ -63,10 +75,11 @@ def register():
         {"email": email}
         ).fetchone()
         if email_from_db is not None:
-            return redirect(url_for("registration_error", message="User with this email already exists."))
+            return error_page("registration_error", "User with this email already exists.")
 
         name = request.form.get("name")
         password = request.form.get("password")
+        # Use postgres RETURNS statement to return newly created user id
         db.execute(
         """
         INSERT INTO users (name, email, password)
@@ -88,7 +101,6 @@ def register():
         return authorize_user(user.user_id, name)
 
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     #if a user opens a log in page
@@ -99,6 +111,7 @@ def login():
         else:
             return render_template("login.html")
     #if a user filled in login data and submits the form
+    #create new func for this
     elif request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
@@ -112,25 +125,21 @@ def login():
         {"email": email, "password": password}
         ).fetchone()
         if user is None:
-            return redirect(url_for("login_error", message="Login or email provided is incorrect."))
+            return error_page("login_error", "Login or email provided is incorrect.")
         else:
             return authorize_user(user.user_id, user.name)
 
 
+def error_page(endpoint, message):
+    return redirect(url_for(endpoint, message=message))
+
+
+# app.route can be applied multiple times to the same function
+@app.route("/login_error", endpoint="login_error")
+@app.route("/registration_error", endpoint="registration_error")
+@app.route("/books/error")
 def render_error_page():
     return render_template("Error.html", message=request.args.get("message", "Go away!!!"))
-
-@app.route("/login_error")
-def login_error():
-    return render_error_page()
-
-@app.route("/registration_error")
-def registration_error():
-    return render_error_page()
-
-@app.route("/books/error")
-def book_error():
-    return render_error_page()
 
 
 @app.route("/logout", methods=["POST"])
@@ -146,28 +155,36 @@ def books():
         return redirect(url_for("index"))
 
     search_string = request.args.get("search_input")
+
+    #def render_books(books, error):
+    #    return render_template(
+    #        "books.html",
+    #        search_string=search_string,
+    #        books=books,
+    #        error=error,
+    #    )
+
     #if it's the first page opening and search wasn't made yet
+    # look at jinja2 "is defined" thing, it allows to omit arguments to render_template
     if search_string is None:
         return render_template("books.html", name=user_name, books=None, search_string=None)
-    else:
-        if search_string == "":
-            return render_template("books.html", search_string=search_string, books=None, error="Search request is empty. No books found.")
-        else:
-            books = db.execute(
-            """
-            SELECT isbn, title, author
-            FROM books
-            WHERE
-            isbn LIKE :search_phrase
-            OR title LIKE :search_phrase
-            OR author LIKE :search_phrase
-            """,
-            {"search_phrase": "%" + search_string + "%"}
-            ).fetchall()
-            if len(books) == 0:
-                return render_template("books.html", search_string=search_string, books=None, error="No books found for your search query")
-            else:
-                return render_template("books.html", search_string=search_string, books=books, error="")
+    if search_string == "":
+        return render_template("books.html", search_string=search_string, books=None, error="Search request is empty. No books found.")
+
+    books = db.execute(
+    """
+    SELECT isbn, title, author
+    FROM books
+    WHERE
+    isbn LIKE :search_phrase
+    OR title LIKE :search_phrase
+    OR author LIKE :search_phrase
+    """,
+    {"search_phrase": "%" + search_string + "%"}
+    ).fetchall()
+    if not books:
+        return render_template("books.html", search_string=search_string, books=None, error="No books found for your search query")
+    return render_template("books.html", search_string=search_string, books=books, error="")
 
 
 def get_book_data(isbn):
@@ -192,13 +209,14 @@ def book_page(isbn):
     book_data = get_book_data(isbn)
     #if there is no book
     if book_data is None:
-        return redirect(url_for("book_error", message="The book doesn't exist"))
+        return error_page("render_error_page", "The book doesn't exist")
     else:
         #if a book is found obtain it's review rating from Goodreads API
+        # make a separate function
         res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
 
         avg_review = res["books"][0]["average_rating"]
-        if avg_review == "":
+        if not avg_review:
             avg_review = "No rating"
         else:
             avg_review = avg_review + " / 5.00"
@@ -291,16 +309,16 @@ def get_book_api(isbn):
     if response.status_code == 404:
         avg_review = "no data"
         total_reviews = "no data"
-
+    # TODO add else for the below block or wrap in try/except
     res = response.json()
     avg_review = res["books"][0]["average_rating"]
     total_reviews = res["books"][0]["work_ratings_count"]
 
-    return jsonify(
-    {"title": book_data.title,
-    "author": book_data.author,
-    "year": book_data.author,
-    "isbn": book_data.year,
-    "review_count": total_reviews,
-    "average_score": avg_review}
-    )
+    return jsonify({
+        "title": book_data.title,
+        "author": book_data.author,
+        "year": book_data.author,
+        "isbn": book_data.year,
+        "review_count": total_reviews,
+        "average_score": avg_review,
+    })
