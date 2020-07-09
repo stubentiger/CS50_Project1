@@ -13,7 +13,7 @@ Search for books
 {% block body %}
   <div class="row">
     <div class="col">
-      {% if search_string is none %}
+      {% if name is defined %}
       <h1>Hallöchen {{name}}! Start searching for books!</h1>
       {% endif %}
     </div>
@@ -46,7 +46,7 @@ Search for books
 
   <div class="row">
     <div class="col">
-      {% if error %}
+      {% if error is defined %}
         <p>{{ error }}</p>
       {% endif %}
     </div>
@@ -54,7 +54,7 @@ Search for books
 
   <div class="row mt-2 mb-3">
     <div class="col">
-      {% if books %}
+      {% if books is defined %}
       <ul class="list-group">
         {% for (isbn, title, author) in books %}
           <li class="list-group-item"><a href="{{ url_for('book_page', isbn=isbn) }}">{{ title }}</a> written by {{ author }}</li>

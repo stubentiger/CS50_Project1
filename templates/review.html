@@ -11,22 +11,22 @@ Submit new review
 {% endblock %}
 
 {% block body %}
-<div class="row justify-content-center">
-  <div class="col-8">
+<div class="row">
+  <div class="col">
     <h1>Review for {{ title }}</h1>
     <form action="{{ url_for('submit_review', isbn=isbn) }}" method="POST">
       <input type="radio" id="1" value="1" name="review">
-      <label for="1">1</label><br>
+      <label for="1">1 (Very bad)</label><br>
       <input type="radio" id="2" value="2" name="review">
-      <label for="2">2</label><br>
+      <label for="2">2 (Bad)</label><br>
       <input type="radio" id="3" value="3" name="review">
-      <label for="3">3</label><br>
+      <label for="3">3 (So-so)</label><br>
       <input type="radio" id="4" value="4" name="review">
-      <label for="4">4</label><br>
+      <label for="4">4 (Good)</label><br>
       <input type="radio" id="5" value="5" name="review">
-      <label for="5">5</label><br>
+      <label for="5">5 (Excellent)</label><br>
       <textarea name="review_text" class="form-control mb-3 mt-3" rows="8" placeholder="Write your feedback here"></textarea>
-      {% if error %}
+      {% if error is defined %}
         <p>{{ error }}</p>
       {% endif %}
       <button class="btn btn-primary" type="submit">Submit</button>

@@ -14,29 +14,38 @@
 
 <div class="row">
   <div class="col">
-    <h1>{{ title }} by {{ author }}</h1>
-    <h4>isbn: {{ isbn }}</h4>
-    <h4>year: {{ year }}</h4>
+    <h1>"{{ title }}" by {{ author }}</h1>
+    <h5>isbn: {{ isbn }}</h5>
+    <h5>year: {{ year }}</h5>
+  </div>
+</div>
+<div class="row mt-3">
+  <div class="col">
     <h2>Goodreads rating</h2>
-    <h4>Total reviews: {{ total_reviews }}</h4>
-    <h4>rating: {{ avg_review }}</h4>
+    <h5>Total reviews: {{ total_reviews }}</h5>
+    <h5>rating: {{ avg_review }}</h5>
   </div>
 </div>
 
 
+<div class="row mt-3 mb-2">
+  <div class="col">
+    <h2>Reviews</h2>
+  </div>
+</div>
+
 <div class="row">
   <div class="col">
-    <h1>Reviews</h1>
     {% if reviews %}
     {% for (name, date, rate, revision_text) in reviews %}
-    <h4>{{ name }} on {{ date }}</h4>
-    <p>{{ rate }} / 5 </p>
+    <h5>{{ name }} on {{ date }}</h5>
+    <div class="rate">{{ rate }} / 5 </div>
     <p>{{ revision_text }}</p>
     {% endfor %}
     {% else %}
     <p>There are no reviews left by Bookeeper users. Be the first!</p>
     {% endif %}
-      <a class="btn btn-primary" href="{{ url_for('submit_review', isbn=isbn) }}">Add review</a>
+    <a class="btn btn-primary" href="{{ url_for('submit_review', isbn=isbn) }}">Add review</a>
   </div>
 </div>
 

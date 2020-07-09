@@ -24,26 +24,21 @@ db = scoped_session(sessionmaker(bind=engine))
 
 @app.route("/")
 def index():
-    user_name = logged_in_user()
-    #remove else and change "is not" logic
-    if user_name is not None:
-        return redirect(url_for("books", name=user_name))
-    else:
-        return render_template("guest.html")
+    if "user_id" in session:
+        return redirect(url_for("books", name=session.get("user_name")))
 
+    return render_template("guest.html")
 
-#check whether user is logged in and return her/his name
-# ADD DECORATOR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! - think about it
 
 # Check that all forms contain expected fields and values because they
 # can be missing.
 
 # Look at tool called "black"
 
-def logged_in_user():
-    if "user_id" in session:
-        return session["user_name"]
-    return None
+
+def redirect_not_loggedin_user():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
 
 
 def authorize_user(user_id, name):
@@ -52,82 +47,88 @@ def authorize_user(user_id, name):
     return redirect(url_for("books", name=name))
 
 
+def render_or_books(template):
+    if "user_id" not in session:
+        return render_template(template)
+    return redirect(url_for("books", name=session.get("user_name")))
+
+
+def email_exists(email):
+    result = db.execute(
+    """
+    SELECT user_id
+    FROM users
+    WHERE email = :email
+    """,
+    {"email": email}
+    ).fetchone()
+    return result is not None
+
+
+def register_user(name, email, password):
+    user = db.execute(
+    """
+    INSERT INTO users (name, email, password)
+    VALUES (:name, :email, :password)
+    RETURNING user_id
+    """,
+    {"name": name, "email": email, "password": password}
+    ).fetchone()
+    db.commit()
+    return user
+
+
 @app.route("/registration", methods=["GET", "POST"])
 def register():
-    #create a separate func for this
     if request.method == "GET":
-        user_name = logged_in_user()
-        if user_name is not None:
-            return redirect(url_for("books", name=user_name))
-        else:
-            return render_template("registration.html")
-    #create a sep func and split this into functions
-    # function with several args
-    elif request.method == "POST":
-        #check a user with this email isn't registered already
-        email = request.form.get("email")
-        email_from_db = db.execute(
-        """
-        SELECT user_id
-        FROM users
-        WHERE email = :email
-        """,
-        {"email": email}
-        ).fetchone()
-        if email_from_db is not None:
-            return error_page("registration_error", "User with this email already exists.")
+        return render_or_books("registration.html")
 
-        name = request.form.get("name")
-        password = request.form.get("password")
-        # Use postgres RETURNS statement to return newly created user id
-        db.execute(
-        """
-        INSERT INTO users (name, email, password)
-        VALUES (:name, :email, :password)
-        """,
-        {"name": name, "email": email, "password": password}
-        )
-        db.commit()
-        # log in this new user
-        user = db.execute(
-        """
-        SELECT user_id
-        FROM users
-        WHERE email = :email
-          AND password = :password
-        """,
-        {"email": email, "password": password}
-        ).fetchone()
-        return authorize_user(user.user_id, name)
+    try:
+        email = request.form["email"]
+        name = request.form["name"]
+        password = request.form["password"]
+    except KeyError:
+        return error_page("registration_error", "Something went wrong. Try later.")
+    #check a user with this email isn't registered already
+    if email_exists(email):
+        return error_page("registration_error", "User with this email already exists.")
+
+    user = register_user(name, email, password)
+
+    # log in this new user
+    return authorize_user(user.user_id, name)
+
+
+def get_user(email, password):
+    user = db.execute(
+    """
+    SELECT user_id, name, email, password
+    FROM users
+    WHERE email = :email
+      AND password = :password
+    """,
+    {"email": email, "password": password}
+    ).fetchone()
+    return user
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     #if a user opens a log in page
     if request.method == "GET":
-        user_name = logged_in_user()
-        if user_name is not None:
-            return render_template("books.html", name=user_name)
-        else:
-            return render_template("login.html")
-    #if a user filled in login data and submits the form
-    #create new func for this
-    elif request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-        user = db.execute(
-        """
-        SELECT user_id, name, email, password
-        FROM users
-        WHERE email = :email
-          AND password = :password
-        """,
-        {"email": email, "password": password}
-        ).fetchone()
-        if user is None:
-            return error_page("login_error", "Login or email provided is incorrect.")
-        else:
-            return authorize_user(user.user_id, user.name)
+        return render_or_books("login.html")
+
+    try:
+        email = request.form["email"]
+        password = request.form["password"]
+    except KeyError:
+        return error_page("login_error", "Something went wrong. Try later.")
+
+    user = get_user(email, password)
+    if user is None:
+        return error_page("login_error", "Login or email provided is incorrect.")
+
+    return authorize_user(user.user_id, user.name)
 
 
 def error_page(endpoint, message):
@@ -137,6 +138,7 @@ def error_page(endpoint, message):
 # app.route can be applied multiple times to the same function
 @app.route("/login_error", endpoint="login_error")
 @app.route("/registration_error", endpoint="registration_error")
+@app.route("/book_error", endpoint="book_error")
 @app.route("/books/error")
 def render_error_page():
     return render_template("Error.html", message=request.args.get("message", "Go away!!!"))
@@ -148,46 +150,46 @@ def logout():
     return render_template("guest.html")
 
 
-@app.route("/books")
-def books():
-    user_name = logged_in_user()
-    if user_name is None:
-        return redirect(url_for("index"))
-
-    search_string = request.args.get("search_input")
-
-    #def render_books(books, error):
-    #    return render_template(
-    #        "books.html",
-    #        search_string=search_string,
-    #        books=books,
-    #        error=error,
-    #    )
-
-    #if it's the first page opening and search wasn't made yet
-    # look at jinja2 "is defined" thing, it allows to omit arguments to render_template
-    if search_string is None:
-        return render_template("books.html", name=user_name, books=None, search_string=None)
-    if search_string == "":
-        return render_template("books.html", search_string=search_string, books=None, error="Search request is empty. No books found.")
-
+def get_books_by_search(search_string):
     books = db.execute(
     """
     SELECT isbn, title, author
     FROM books
     WHERE
-    isbn LIKE :search_phrase
-    OR title LIKE :search_phrase
-    OR author LIKE :search_phrase
+      isbn LIKE :search_phrase
+      OR title LIKE :search_phrase
+      OR author LIKE :search_phrase
     """,
     {"search_phrase": "%" + search_string + "%"}
     ).fetchall()
+    return books
+
+
+@app.route("/books")
+def books():
+
+    redirect_not_loggedin_user()
+
+    search_string = request.args.get("search_input")
+
+    def render_books(**kwargs):
+        return render_template("books.html", search_string=search_string, **kwargs)
+
+    #if it's the first page opening and search wasn't made yet
+    if search_string is None:
+        return render_books(name=session.get("user_name"))
+
+    if search_string == "":
+        return render_books(error="Search request is empty. No books found.")
+
+    books = get_books_by_search(search_string)
     if not books:
-        return render_template("books.html", search_string=search_string, books=None, error="No books found for your search query")
-    return render_template("books.html", search_string=search_string, books=books, error="")
+        return render_books(error="No books found for your search query")
+
+    return render_books(books=books)
 
 
-def get_book_data(isbn):
+def get_book_by_isbn(isbn):
     book_data = db.execute(
     """
     SELECT isbn, title, author, year
@@ -200,119 +202,145 @@ def get_book_data(isbn):
     return book_data
 
 
+def get_rating_from_provider(isbn):
+    response = requests.get("https://www.goodreads.com/book/review_counts.json",
+    params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn})
+    if response.status_code == 404:
+        avg_review = "no data"
+        total_reviews = "no data"
+        return {"review": avg_review, "total": total_reviews}
+    res = response.json()
+    avg_review = res["books"][0]["average_rating"]
+    if not avg_review:
+        avg_review = "No rating"
+    else:
+        avg_review = avg_review + " / 5.00"
+
+    total_reviews = res["books"][0]["work_ratings_count"]
+
+    return (avg_review, total_reviews)
+
+
+#START FROM HERE!!!!!!!!!!!!!!!!
 @app.route("/books/<isbn>")
 def book_page(isbn):
-    user_name = logged_in_user()
-    if user_name is None:
-        return redirect(url_for("index"))
 
-    book_data = get_book_data(isbn)
+    redirect_not_loggedin_user()
+
+    book_data = get_book_by_isbn(isbn)
     #if there is no book
     if book_data is None:
         return error_page("render_error_page", "The book doesn't exist")
-    else:
-        #if a book is found obtain it's review rating from Goodreads API
-        # make a separate function
-        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn}).json()
 
-        avg_review = res["books"][0]["average_rating"]
-        if not avg_review:
-            avg_review = "No rating"
-        else:
-            avg_review = avg_review + " / 5.00"
+    #if a book is found obtain it's review rating from Goodreads API
+    avg_review, total_reviews = get_rating_from_provider(isbn)
 
-        total_reviews = res["books"][0]["work_ratings_count"]
+    reviews = db.execute(
+    """
+    SELECT name, date, rate, revision_text
+    FROM
+    reviews JOIN users ON reviews.user_id = users.user_id
+      WHERE isbn = :isbn
+    """,
+    {"isbn": isbn}
+    ).fetchall()
 
-        reviews = db.execute(
-        """
-        SELECT name, date, rate, revision_text
-        FROM
-        reviews JOIN users ON reviews.user_id = users.user_id
-          WHERE isbn = :isbn
-        """,
-        {"isbn": isbn}
-        ).fetchall()
+    return render_template(
+        "book_data.html",
+        title=book_data.title,
+        author=book_data.author,
+        isbn=book_data.isbn,
+        year=book_data.year,
+        avg_review=avg_review,
+        total_reviews= total_reviews,
+        reviews = reviews
+    )
 
-        return render_template(
-            "book_data.html",
-            title=book_data.title,
-            author=book_data.author,
-            isbn=book_data.isbn,
-            year=book_data.year,
-            avg_review=avg_review,
-            total_reviews= total_reviews,
-            reviews = reviews
-        )
+
+def get_reviewer(isbn, user_id):
+    reviewer = db.execute(
+    """
+    SELECT user_id
+    FROM reviews
+    WHERE
+      isbn = :isbn
+    AND user_id = :user_id
+    """,
+    {"isbn": isbn, "user_id": user_id}
+    ).fetchone()
+    return reviewer
+
+
+def add_review(isbn, user_id, rate, revision_text):
+    db.execute(
+    """
+    INSERT INTO reviews (isbn, user_id, rate, revision_text)
+    VALUES
+    (:isbn, :user_id, :rate, :revision_text)
+    """,
+    {"isbn": isbn, "user_id": user_id, "rate": rate, "revision_text": revision_text}
+    )
+    db.commit()
+
+
+def parse_review_form(form):
+    try:
+        review = form["review"]
+        revision_text = form["review_text"]
+    except KeyError:
+        return (None, None)
+
+    try:
+        review = int(review)
+    except ValueError:
+        return ("error", None)
+
+    return (review, revision_text)
+
 
 
 @app.route("/books/<isbn>/review", methods=["GET", "POST"])
 def submit_review(isbn):
-    user_name = logged_in_user()
-    if user_name is None:
-        return redirect(url_for("index"))
 
-    book_data = get_book_data(isbn)
+    redirect_not_loggedin_user()
+
+    book_data = get_book_by_isbn(isbn)
+
+    def render_review(**kwargs):
+        return render_template("review.html", title=book_data.title, isbn=isbn, **kwargs)
 
     if request.method == "GET":
         if book_data is None:
-            return redirect(url_for("book_error", message="You can't add a review. The book doesn't exist."))
-        else:
-            return render_template("review.html", title=book_data.title, isbn=isbn, error="")
-    elif request.method == "POST":
-        # check that current user hasn't left a review for this book
-        user_id = session.get("user_id")
-        review = db.execute(
-        """
-        SELECT user_id
-        FROM reviews
-        WHERE
-          isbn = :isbn
-          AND user_id = :user_id
-        """,
-        {"isbn": isbn, "user_id": user_id}
-        ).fetchone()
+            return error_page("book_error", "You can't add a review. The book doesn't exist.")
+        return render_review()
 
-        if review is not None:
-            return render_template("review.html", title=book_data.title, isbn=isbn, error="You have already reviewed this book")
+    # check that current user hasn't left a review for this book
+    user_id = session.get("user_id")
+    reviewer = get_reviewer(isbn, user_id)
+    if reviewer is not None:
+        return render_review(error="You have already reviewed this book")
 
-        # rating is a mandatory field
-        rate = request.form.get("review")
-        if rate is None:
-            return render_template("review.html", title=book_data.title, isbn=isbn, error="Select a score for the book")
+    review, revision_text = parse_review_form(request.form)
+    if review is None:
+    # review is a mandatory field
+        return error_page("book_error", "Select a score for the book")
+    if review == "error":
+        return error_page("book_error", "Review should be a number.")
+
+    add_review(isbn, user_id, review, revision_text)
+
+    return redirect(url_for("book_page", isbn=isbn))
 
 
-        rate = int(rate)
-        revision_text = request.form.get("review_text")
-        db.execute(
-        """
-        INSERT INTO reviews (isbn, user_id, rate, revision_text)
-        VALUES
-        (:isbn, :user_id, :rate, :revision_text)
-        """,
-        {"isbn": isbn, "user_id": user_id, "rate": rate, "revision_text": revision_text}
-        )
-        db.commit()
-
-        return redirect(url_for("book_page", isbn=isbn))
-
-
+#public API to obtain book data
 @app.route("/api/<isbn>")
 def get_book_api(isbn):
-    book_data = get_book_data(isbn)
+    book_data = get_book_by_isbn(isbn)
     #no book with such isbn in our db
     if book_data is None:
         return jsonify({"error": "Invalid book isbn"}), 404
 
-    response = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn})
-
-    #if the book exists but there is no data about it in Goodreads
-    if response.status_code == 404:
-        avg_review = "no data"
-        total_reviews = "no data"
-    # TODO add else for the below block or wrap in try/except
-    res = response.json()
-    avg_review = res["books"][0]["average_rating"]
-    total_reviews = res["books"][0]["work_ratings_count"]
+    avg_review, total_reviews = get_rating_from_provider(isbn)
 
     return jsonify({
         "title": book_data.title,
