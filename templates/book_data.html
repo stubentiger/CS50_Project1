@@ -39,7 +39,7 @@
     {% if reviews %}
     {% for (name, date, rate, revision_text) in reviews %}
     <h5>{{ name }} on {{ date }}</h5>
-    <div class="rate">{{ rate }} / 5 </div>
+    <div class="rate-{{ rate }}">{{ rate }} / 5 </div>
     <p>{{ revision_text }}</p>
     {% endfor %}
     {% else %}

@@ -1,10 +1,12 @@
 import os
 import requests
+from functools import wraps
 
 from flask import Flask, session, render_template, request, redirect, url_for, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+
 
 app = Flask(__name__)
 
@@ -36,9 +38,13 @@ def index():
 # Look at tool called "black"
 
 
-def redirect_not_loggedin_user():
-    if "user_id" not in session:
-        return redirect(url_for("index"))
+def login_required(view):
+    @wraps(view)
+    def inner(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("index"))
+        return view(*args, **kwargs)
+    return inner
 
 
 def authorize_user(user_id, name):
@@ -166,9 +172,8 @@ def get_books_by_search(search_string):
 
 
 @app.route("/books")
+@login_required
 def books():
-
-    redirect_not_loggedin_user()
 
     search_string = request.args.get("search_input")
 
@@ -223,9 +228,8 @@ def get_rating_from_provider(isbn):
 
 #START FROM HERE!!!!!!!!!!!!!!!!
 @app.route("/books/<isbn>")
+@login_required
 def book_page(isbn):
-
-    redirect_not_loggedin_user()
 
     book_data = get_book_by_isbn(isbn)
     #if there is no book
@@ -300,9 +304,8 @@ def parse_review_form(form):
 
 
 @app.route("/books/<isbn>/review", methods=["GET", "POST"])
+@login_required
 def submit_review(isbn):
-
-    redirect_not_loggedin_user()
 
     book_data = get_book_by_isbn(isbn)
 

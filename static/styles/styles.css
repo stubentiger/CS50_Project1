@@ -46,8 +46,36 @@ ul li {
   font-size: 20px;
 }
 
-.rate {
-  background-color: #62e381;
+.rate-1 {
+  background-color: #fc7760;
+  padding: 2px 16px;
+  border-left: 6px solid #ccc;
+  width: 80px;
+}
+
+.rate-2 {
+  background-color: #f0be6e;
+  padding: 2px 16px;
+  border-left: 6px solid #ccc;
+  width: 80px;
+}
+
+.rate-3 {
+  background-color: #cff25c;
+  padding: 2px 16px;
+  border-left: 6px solid #ccc;
+  width: 80px;
+}
+
+.rate-4 {
+  background-color: #c3fad2;
+  padding: 2px 16px;
+  border-left: 6px solid #ccc;
+  width: 80px;
+}
+
+.rate-5 {
+  background-color: #5cf285;
   padding: 2px 16px;
   border-left: 6px solid #ccc;
   width: 80px;
