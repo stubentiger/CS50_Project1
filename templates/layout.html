@@ -7,25 +7,24 @@
         <link rel="stylesheet" type= "text/css" href="{{ url_for('static',filename='styles/styles.css') }}">
     </head>
     <body>
-
       <div class="container">
         <div class="row">
           <div class="col">
             <nav class="navbar navbar-dark bg-dark mb-2">
               <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
                   <img class="logo mr-2" src="https://i.pinimg.com/originals/2c/fc/93/2cfc93d7665f5d7728782700e50596e3.png" alt="logo">
-                  <strong>Book keeper</strong>
+                  <strong>Die Seiten</strong>
               </a>
               {% block logout %}{% endblock %}
               </a>
             </nav>
           </div>
         </div>
-
         {% block body %}
         {% endblock %}
-
+        <footer class="mt-auto bg-dark p-3">
+            <p class="text-white text-center">This is a small lonely footer I didn't manage to imagine a text for.<p>
+        </footer>
       </div>
-
     </body>
 </html>
