@@ -207,6 +207,7 @@ def get_book_by_isbn(isbn):
     return book_data
 
 
+# using 3d party API
 def get_rating_from_provider(isbn):
     response = requests.get("https://www.goodreads.com/book/review_counts.json",
     params={"key": "quFd8ZfpGD5PkWZ5M20FDg", "isbns": isbn})
@@ -226,7 +227,6 @@ def get_rating_from_provider(isbn):
     return (avg_review, total_reviews)
 
 
-#START FROM HERE!!!!!!!!!!!!!!!!
 @app.route("/books/<isbn>")
 @login_required
 def book_page(isbn):
