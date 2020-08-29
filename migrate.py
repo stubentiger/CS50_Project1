@@ -4,11 +4,10 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-engine = create_engine(os.getenv("DATABASE_URL"))
+engine = create_engine(os.environ["DATABASE_URL"])
 db = scoped_session(sessionmaker(bind=engine))
 
 
-#create books
 def create_books():
     db.execute(
     """
@@ -22,12 +21,11 @@ def create_books():
     db.commit()
 
 
-#create users
 def create_users():
     db.execute(
     """
     CREATE TABLE IF NOT EXISTS users(
-    user_id SERIAL,
+    user_id SERIAL PRIMARY KEY,
     name varchar(100) NOT NULL,
     email varchar(254) NOT NULL,
     password char(1024) NOT NULL
@@ -37,7 +35,6 @@ def create_users():
     db.commit()
 
 
-#create reviews
 def create_reviews():
     db.execute(
     """
@@ -46,7 +43,7 @@ def create_reviews():
     user_id integer REFERENCES users(user_id),
     rate integer NOT NULL,
     revision_text text,
-    date DATE NOT NULL DEFAULT CURRENT_DATE
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
     PRIMARY KEY (isbn, user_id)
     )
     """
@@ -64,15 +61,15 @@ def books_filled():
     return books
 
 
-# fill in the books table
 def main():
     create_books()
     create_users()
     create_reviews()
 
-    if not books_filled():
-        file = open("books.csv")
-        reader = csv.reader(file)
+    if books_filled():
+        return
+    with open("books.csv") as opned_file:
+        reader = csv.reader(opned_file)
         next(reader, None)
         for isbn, title, author, year in reader:
             db.execute("INSERT INTO books (isbn, title, author, year) VALUES (:isbn, :title, :author, :year)",
