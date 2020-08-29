@@ -8,19 +8,19 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgres://user:hello_world@db:5432/bookkeeper
+      - DATABASE_URL=postgres://user:hello_world@db:5432/derseite
   db:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=hello_world
-      - POSTGRES_DB=bookkeeper
+      - POSTGRES_DB=derseite
     volumes:
       - postgres_data:/var/lib/postgresql/data/
   migrator:
     image: flask_app
     environment:
-    - DATABASE_URL=postgres://user:hello_world@db:5432/bookkeeper
+    - DATABASE_URL=postgres://user:hello_world@db:5432/derseite
     # override CMD of the Dockerfile
     command: python migrate.py
     volumes:
