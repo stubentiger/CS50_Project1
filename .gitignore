@@ -1,5 +1,3 @@
 __pycache__/
 .python-version
 flask_session/
-run.sh
-run_without_flask.sh
