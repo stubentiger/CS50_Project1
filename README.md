@@ -26,10 +26,10 @@ Some aspects are excluded from the scope of the project (for example, password h
 ## Usage
 
 1. For a quick glance use a test user credentials:
-login: test@test.com
-password:password
+> login: test@test.com
+> password:password
 
-Example of a book page:
+Example of a book page with user's review:
 http://0.0.0.0:5000/books/0380795272
 
 2. Using Goodreads API
