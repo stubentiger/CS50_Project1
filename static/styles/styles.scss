@@ -1,5 +1,10 @@
 @use 'sass:map';
 
+html {
+    position: relative;
+    min-height: 100%;
+}
+
 body{
   background-color: #f0f0f5;
 }
@@ -57,4 +62,17 @@ $rate-colors: (1: #fc7760, 2: #f0be6e, 3: #cff25c, 4: #c3fad2, 5: #5cf285);
   border-left: 6px solid #ccc;
   width: 80px;
 }
+}
+
+/* hack to make sticky footer*/
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  line-height: 60px;
+}
+
+/* hack to make sticky footer*/
+.hidden {
+  height: 80px;
 }
