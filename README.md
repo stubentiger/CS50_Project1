@@ -27,6 +27,7 @@ Some aspects are excluded from the scope of the project (for example, password h
 
 1. For a quick glance use a test user credentials:
 > login: test@test.com
+
 > password:password
 
 Example of a book page with user's review:
