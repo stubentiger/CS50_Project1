@@ -14,7 +14,7 @@ It is a pet project aimed at demonstrating the usage of:
 
 Some aspects are excluded from the scope of the project (for example, password hashing and input data validation) and will be implemented in the other pet projects :)
 
-## Installation:
+## Installation
 
 1. download all the files from repository
 2. make sure you have Docker [installed](https://docs.docker.com/get-docker/) and launched
