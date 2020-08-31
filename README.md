@@ -26,6 +26,7 @@ Some aspects are excluded from the scope of the project (for example, password h
 ## Usage
 
 1. For a quick glance use a test user credentials:
+
 > login: test@test.com
 
 > password:password
@@ -33,6 +34,7 @@ Some aspects are excluded from the scope of the project (for example, password h
 Example of a book page with user's review:
 http://0.0.0.0:5000/books/0380795272
 
-2. Using Goodreads API
+2. Goodreads API
+
 You can obtain book data using Goodreads API.
 Make a GET request to /api/<isbn> route, where <isbn> is an ISBN number. The website will return a JSON response containing the book’s title, author, publication date, ISBN number, review count, and average score.
