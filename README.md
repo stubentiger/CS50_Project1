@@ -29,7 +29,7 @@ Some aspects are excluded from the scope of the project (for example, password h
 
 > login: test@test.com
 
-> password:password
+> password: password
 
 Example of a book page with user's review:
 http://0.0.0.0:5000/books/0380795272
@@ -37,4 +37,4 @@ http://0.0.0.0:5000/books/0380795272
 2. Goodreads API
 
 You can obtain book data using Goodreads API.
-Make a GET request to /api/<isbn> route, where <isbn> is an ISBN number. The website will return a JSON response containing the book’s title, author, publication date, ISBN number, review count, and average score.
+Make a GET request to /api/< isbn > route, where < isbn > is an ISBN number. The website will return a JSON response containing the book’s title, author, publication date, ISBN number, review count, and average score.
